@@ -57,8 +57,8 @@ const Auth = () => {
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
             toast({
-              title: "Oops!",
-              description: "Email or password isn't right. Try again?",
+              title: "nah bestie 😬",
+              description: "that email or password ain't it. wanna try again?",
               variant: "destructive",
             });
           } else {
@@ -70,8 +70,8 @@ const Auth = () => {
           }
         } else {
           toast({
-            title: "Welcome back! 💙",
-            description: "Let's check on those subscriptions",
+            title: "yess bestie, you're back! 💙",
+            description: "let's see what we're working with 👀",
           });
         }
       } else {
@@ -87,8 +87,8 @@ const Auth = () => {
         if (error) {
           if (error.message.includes("already registered")) {
             toast({
-              title: "Hold up!",
-              description: "You're already registered. Try logging in instead?",
+              title: "wait wait wait! 🤚",
+              description: "you're already in the fam! just log in bestie",
               variant: "destructive",
             });
           } else {
@@ -100,8 +100,8 @@ const Auth = () => {
           }
         } else {
           toast({
-            title: "Bet! You're in 🎉",
-            description: "Welcome to your financial glow-up journey",
+            title: "period! you're in 🎉",
+            description: "welcome to your financial glow-up era ✨",
           });
         }
       }
@@ -119,21 +119,25 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4">
-      <Card className="w-full max-w-md shadow-medium">
-        <CardHeader className="text-center space-y-2">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4 relative overflow-hidden">
+      {/* Animated background blobs */}
+      <div className="absolute top-0 left-0 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
+      
+      <Card className="w-full max-w-md shadow-glow backdrop-blur-sm bg-card/95 relative z-10 animate-fade-in border-2">
+        <CardHeader className="text-center space-y-3">
           <div className="flex justify-center mb-2">
-            <div className="p-3 rounded-full bg-primary/10">
-              <Lock className="w-6 h-6 text-primary" />
+            <div className="text-6xl animate-bounce" style={{ animationDuration: '2s' }}>
+              💸
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold">
-            {isLogin ? "Welcome Back!" : "Let's Get Started"}
+          <CardTitle className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            {isLogin ? "hey bestie! 💙" : "let's glow up 🦋"}
           </CardTitle>
-          <CardDescription className="text-base">
+          <CardDescription className="text-base leading-relaxed">
             {isLogin 
-              ? "Time to check on your subscriptions 👀" 
-              : "Your data stays yours. No bank linking. We're not about that life."}
+              ? "ready to slay those subscriptions? let's check the damage 👀✨" 
+              : "track your subs, save your coins, live your best life. no cap! 🎯"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -164,31 +168,39 @@ const Auth = () => {
             </div>
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full bg-gradient-primary hover:opacity-90 transition-all hover:scale-105 shadow-glow text-lg font-semibold py-6" 
               disabled={loading}
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Hold up...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  manifesting...
                 </>
               ) : (
-                isLogin ? "Let's Go" : "Start Tracking"
+                isLogin ? "let's gooo 🚀" : "start my glow-up ✨"
               )}
             </Button>
           </form>
-          <div className="mt-4 text-center">
+          <div className="mt-6 text-center">
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              className="text-sm text-muted-foreground hover:text-primary transition-all hover:scale-105 font-medium"
               disabled={loading}
             >
               {isLogin 
-                ? "New here? Sign up instead" 
-                : "Already have an account? Log in"}
+                ? "new here? join the club 🎉" 
+                : "wait, i already have an account 😅"}
             </button>
           </div>
+          
+          {!isLogin && (
+            <div className="mt-4 p-3 rounded-lg bg-accent/20 border border-accent/30">
+              <p className="text-xs text-center text-muted-foreground">
+                no sketchy stuff, we promise 🤝 your data = your business
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
