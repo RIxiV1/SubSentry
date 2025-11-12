@@ -33,16 +33,19 @@ const SubscriptionCard = ({ subscription, onDelete, onEdit }: SubscriptionCardPr
   };
 
   return (
-    <Card className="shadow-soft hover:shadow-medium transition-all hover:-translate-y-1">
+    <Card className="shadow-soft hover:shadow-medium transition-all hover:-translate-y-1 duration-300 group animate-fade-in">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
-          <CardTitle className="text-xl">{subscription.name}</CardTitle>
-          <div className="flex gap-2">
+          <CardTitle className="text-xl group-hover:text-primary transition-colors">
+            {subscription.name}
+          </CardTitle>
+          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => onEdit(subscription)}
-              className="h-8 w-8 text-muted-foreground hover:text-primary"
+              className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+              aria-label={`Edit ${subscription.name} subscription`}
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -50,7 +53,8 @@ const SubscriptionCard = ({ subscription, onDelete, onEdit }: SubscriptionCardPr
               variant="ghost"
               size="icon"
               onClick={() => onDelete(subscription.id)}
-              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+              aria-label={`Delete ${subscription.name} subscription`}
             >
               <Trash2 className="h-4 w-4" />
             </Button>

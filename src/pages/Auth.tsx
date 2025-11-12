@@ -152,6 +152,9 @@ const Auth = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                className="transition-all focus:scale-[1.01] focus:ring-2 focus:ring-primary"
+                aria-label="Email address"
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -164,12 +167,16 @@ const Auth = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
+                className="transition-all focus:scale-[1.01] focus:ring-2 focus:ring-primary"
+                aria-label="Password"
+                autoComplete={isLogin ? "current-password" : "new-password"}
               />
             </div>
             <Button 
               type="submit" 
               className="w-full bg-gradient-primary hover:opacity-90 transition-all hover:scale-105 shadow-glow text-lg font-semibold py-6" 
               disabled={loading}
+              aria-label={isLogin ? "Sign in to your account" : "Create new account"}
             >
               {loading ? (
                 <>
@@ -187,6 +194,7 @@ const Auth = () => {
               onClick={() => setIsLogin(!isLogin)}
               className="text-sm text-muted-foreground hover:text-primary transition-all hover:scale-105 font-medium"
               disabled={loading}
+              aria-label={isLogin ? "Switch to sign up mode" : "Switch to sign in mode"}
             >
               {isLogin 
                 ? "new here? join the club 🎉" 

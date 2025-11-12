@@ -38,43 +38,52 @@ const DashboardStats = ({ subscriptions }: DashboardStatsProps) => {
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Card className="shadow-soft hover:shadow-medium transition-shadow">
+      <Card className="shadow-soft hover:shadow-medium transition-all hover:scale-105 duration-300">
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full bg-primary/10">
+            <div className="p-3 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
               <DollarSign className="w-6 h-6 text-primary" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-muted-foreground">Monthly Spend</p>
-              <p className="text-3xl font-bold">${monthlyTotal.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground font-medium">Monthly Spend</p>
+              <p className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                ${monthlyTotal.toFixed(2)}
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="shadow-soft hover:shadow-medium transition-shadow">
+      <Card className="shadow-soft hover:shadow-medium transition-all hover:scale-105 duration-300">
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full bg-secondary/10">
+            <div className="p-3 rounded-full bg-secondary/10 group-hover:bg-secondary/20 transition-colors">
               <TrendingUp className="w-6 h-6 text-secondary" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-muted-foreground">Annual Total</p>
-              <p className="text-3xl font-bold">${annualTotal.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground font-medium">Annual Total</p>
+              <p className="text-3xl font-bold bg-gradient-to-r from-secondary to-secondary/70 bg-clip-text text-transparent">
+                ${annualTotal.toFixed(2)}
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="shadow-soft hover:shadow-medium transition-shadow">
+      <Card className="shadow-soft hover:shadow-medium transition-all hover:scale-105 duration-300">
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full bg-accent/10">
+            <div className="p-3 rounded-full bg-accent/10 group-hover:bg-accent/20 transition-colors">
               <Calendar className="w-6 h-6 text-accent" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-muted-foreground">Renewals (7 days)</p>
-              <p className="text-3xl font-bold">{upcomingRenewals}</p>
+              <p className="text-sm text-muted-foreground font-medium">Renewals (7 days)</p>
+              <p className="text-3xl font-bold text-accent">
+                {upcomingRenewals}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {upcomingRenewals === 0 ? "All clear! 🎉" : "Stay on top of it 👀"}
+              </p>
             </div>
           </div>
         </CardContent>
