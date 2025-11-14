@@ -16,6 +16,8 @@ import BudgetAnalyzer from "@/components/BudgetAnalyzer";
 import BudgetSettings from "@/components/BudgetSettings";
 import SkeletonCard from "@/components/SkeletonCard";
 import SkeletonStats from "@/components/SkeletonStats";
+import CommandPalette from "@/components/CommandPalette";
+import SearchFilter from "@/components/SearchFilter";
 import confetti from "canvas-confetti";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -36,6 +38,9 @@ const Dashboard = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("name");
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -166,6 +171,45 @@ const Dashboard = () => {
     setIsEditDialogOpen(true);
   };
 
+  // Filter and sort subscriptions
+  const filteredAndSortedSubscriptions = (() => {
+    let filtered = subscriptions || [];
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(sub =>
+        sub.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply category filter
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(sub => sub.category === selectedCategory);
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "cost-high":
+          const aCost = a.billing_cycle === "yearly" ? a.cost / 12 : a.cost;
+          const bCost = b.billing_cycle === "yearly" ? b.cost / 12 : b.cost;
+          return bCost - aCost;
+        case "cost-low":
+          const aCostLow = a.billing_cycle === "yearly" ? a.cost / 12 : a.cost;
+          const bCostLow = b.billing_cycle === "yearly" ? b.cost / 12 : b.cost;
+          return aCostLow - bCostLow;
+        case "renewal":
+          return new Date(a.next_renewal_date).getTime() - new Date(b.next_renewal_date).getTime();
+        default:
+          return 0;
+      }
+    });
+
+    return sorted;
+  })();
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-subtle">
@@ -208,14 +252,15 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-subtle">
       <div className="container max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8 animate-fade-in">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 animate-fade-in">
           <div>
             <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               SubSentry 💸
             </h1>
             <p className="text-muted-foreground">Your fin-bestie keeping track</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            <CommandPalette onAddSubscription={() => setIsAddDialogOpen(true)} onLogout={handleLogout} />
             <ThemeToggle />
             <Button 
               variant="outline" 
@@ -224,7 +269,7 @@ const Dashboard = () => {
               aria-label="Log out of your account"
             >
               <LogOut className="w-4 h-4" />
-              Peace out
+              <span className="hidden sm:inline">Peace out</span>
             </Button>
           </div>
         </div>
@@ -264,7 +309,7 @@ const Dashboard = () => {
 
         {/* Subscriptions List */}
         <div className="mt-8">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <h2 className="text-2xl font-bold">Your Subscriptions</h2>
             <Button 
               onClick={() => setIsAddDialogOpen(true)}
@@ -275,6 +320,19 @@ const Dashboard = () => {
               Add to Hit List
             </Button>
           </div>
+
+          {subscriptions.length > 0 && (
+            <div className="mb-6">
+              <SearchFilter
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                selectedCategory={selectedCategory}
+                onCategoryChange={setSelectedCategory}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+              />
+            </div>
+          )}
 
           {subscriptions.length === 0 ? (
             <div className="text-center py-20 bg-card rounded-lg shadow-soft animate-fade-in">
@@ -295,9 +353,29 @@ const Dashboard = () => {
                 Add Your First Sub
               </Button>
             </div>
+          ) : filteredAndSortedSubscriptions.length === 0 ? (
+            <div className="text-center py-12 animate-fade-in">
+              <p className="text-muted-foreground">
+                {searchQuery || selectedCategory !== "all" 
+                  ? "No subscriptions match your filters 🔍" 
+                  : "No subscriptions found"}
+              </p>
+              {(searchQuery || selectedCategory !== "all") && (
+                <Button 
+                  variant="link" 
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("all");
+                  }}
+                  className="mt-2"
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {subscriptions.map((subscription) => (
+              {filteredAndSortedSubscriptions.map((subscription) => (
                 <SubscriptionCard
                   key={subscription.id}
                   subscription={subscription}
@@ -321,6 +399,16 @@ const Dashboard = () => {
           onOpenChange={setIsEditDialogOpen}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['subscriptions'] })}
         />
+
+        {/* Floating Action Button for mobile */}
+        <Button
+          onClick={() => setIsAddDialogOpen(true)}
+          size="lg"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl md:hidden z-50 hover:scale-110 transition-transform bg-gradient-primary"
+          aria-label="Quick add subscription"
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
       </div>
     </div>
   );
