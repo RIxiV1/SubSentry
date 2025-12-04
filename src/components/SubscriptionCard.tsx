@@ -5,6 +5,7 @@ import { Trash2, Calendar, Edit } from "lucide-react";
 import { Subscription } from "@/pages/Dashboard";
 import { format, differenceInDays } from "date-fns";
 import { useState, useRef, useEffect } from "react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface SubscriptionCardProps {
   subscription: Subscription;
@@ -18,6 +19,7 @@ const SubscriptionCard = ({ subscription, onDelete, onEdit }: SubscriptionCardPr
   const startX = useRef(0);
   const currentX = useRef(0);
   const cardRef = useRef<HTMLDivElement>(null);
+  const { formatCurrency } = useCurrency();
 
   const getDaysUntilRenewal = () => {
     const today = new Date();
@@ -49,7 +51,6 @@ const SubscriptionCard = ({ subscription, onDelete, onEdit }: SubscriptionCardPr
     currentX.current = e.touches[0].clientX;
     const diff = currentX.current - startX.current;
     
-    // Limit swipe to -120px (left) or 0px (right)
     const clampedDiff = Math.max(-120, Math.min(0, diff));
     setTranslateX(clampedDiff);
   };
@@ -57,7 +58,6 @@ const SubscriptionCard = ({ subscription, onDelete, onEdit }: SubscriptionCardPr
   const handleTouchEnd = () => {
     setIsSwiping(false);
     
-    // Snap to open (-120px) if swiped more than 60px, otherwise snap back to 0
     if (translateX < -60) {
       setTranslateX(-120);
     } else {
@@ -75,7 +75,6 @@ const SubscriptionCard = ({ subscription, onDelete, onEdit }: SubscriptionCardPr
     onDelete(subscription.id);
   };
 
-  // Close swipe when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
@@ -86,6 +85,10 @@ const SubscriptionCard = ({ subscription, onDelete, onEdit }: SubscriptionCardPr
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const monthlyCost = subscription.billing_cycle === "yearly" 
+    ? subscription.cost / 12 
+    : subscription.cost;
 
   return (
     <div 
@@ -157,7 +160,7 @@ const SubscriptionCard = ({ subscription, onDelete, onEdit }: SubscriptionCardPr
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-3xl font-bold text-primary">
-              ${subscription.cost.toFixed(2)}
+              {formatCurrency(subscription.cost)}
             </span>
             <Badge variant="outline" className={getCategoryColor(subscription.category)}>
               {subscription.category}
@@ -181,7 +184,7 @@ const SubscriptionCard = ({ subscription, onDelete, onEdit }: SubscriptionCardPr
 
           {subscription.billing_cycle === "yearly" && (
             <div className="text-xs text-muted-foreground pt-2 border-t">
-              ${(subscription.cost / 12).toFixed(2)}/month
+              {formatCurrency(monthlyCost)}/month
             </div>
           )}
         </div>

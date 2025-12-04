@@ -2,12 +2,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, Calendar, DollarSign } from "lucide-react";
 import { Subscription } from "@/pages/Dashboard";
 import AnimatedCounter from "./AnimatedCounter";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface DashboardStatsProps {
   subscriptions: Subscription[];
 }
 
 const DashboardStats = ({ subscriptions }: DashboardStatsProps) => {
+  const { currency } = useCurrency();
+
   const calculateMonthlyTotal = () => {
     return subscriptions.reduce((total, sub) => {
       const cost = sub.billing_cycle === "yearly" ? sub.cost / 12 : sub.cost;
@@ -48,7 +51,7 @@ const DashboardStats = ({ subscriptions }: DashboardStatsProps) => {
             <div className="flex-1">
               <p className="text-sm text-muted-foreground font-medium">Monthly Spend</p>
               <p className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                <AnimatedCounter value={monthlyTotal} prefix="$" decimals={2} />
+                <AnimatedCounter value={monthlyTotal} prefix={currency.symbol} decimals={2} />
               </p>
             </div>
           </div>
@@ -64,7 +67,7 @@ const DashboardStats = ({ subscriptions }: DashboardStatsProps) => {
             <div className="flex-1">
               <p className="text-sm text-muted-foreground font-medium">Annual Total</p>
               <p className="text-3xl font-bold bg-gradient-to-r from-secondary to-secondary/70 bg-clip-text text-transparent">
-                <AnimatedCounter value={annualTotal} prefix="$" decimals={2} />
+                <AnimatedCounter value={annualTotal} prefix={currency.symbol} decimals={2} />
               </p>
             </div>
           </div>

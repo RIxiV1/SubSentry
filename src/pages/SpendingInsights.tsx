@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +6,9 @@ import { ArrowLeft, TrendingUp, PieChart, BarChart3 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Subscription } from "./Dashboard";
-import { AreaChart, Area, PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import { useCurrency } from "@/hooks/useCurrency";
 
 type ChartView = "trends" | "categories" | "comparison";
 
@@ -17,6 +18,7 @@ const SpendingInsights = () => {
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { formatCurrency, currency } = useCurrency();
 
   const { data: session } = useQuery({
     queryKey: ["session"],
@@ -42,7 +44,6 @@ const SpendingInsights = () => {
     enabled: !!session?.user?.id,
   });
 
-  // Swipe gesture handlers
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
   };
@@ -53,21 +54,18 @@ const SpendingInsights = () => {
 
   const handleTouchEnd = () => {
     if (touchStart - touchEnd > 75) {
-      // Swipe left - next view
       const views: ChartView[] = ["trends", "categories", "comparison"];
       const currentIndex = views.indexOf(currentView);
       setCurrentView(views[(currentIndex + 1) % views.length]);
     }
 
     if (touchStart - touchEnd < -75) {
-      // Swipe right - previous view
       const views: ChartView[] = ["trends", "categories", "comparison"];
       const currentIndex = views.indexOf(currentView);
       setCurrentView(views[(currentIndex - 1 + views.length) % views.length]);
     }
   };
 
-  // Calculate spending trends over last 6 months
   const getTrendsData = () => {
     const months = eachMonthOfInterval({
       start: subMonths(new Date(), 5),
@@ -75,18 +73,9 @@ const SpendingInsights = () => {
     });
 
     return months.map(month => {
-      const monthStart = startOfMonth(month);
-      const monthEnd = endOfMonth(month);
-      
       const monthlyTotal = subscriptions.reduce((total, sub) => {
-        const renewalDate = new Date(sub.next_renewal_date);
         const monthlyCost = sub.billing_cycle === "yearly" ? sub.cost / 12 : sub.cost;
-        
-        // Count if renewal falls in this month or subscription was active
-        if (renewalDate >= monthStart && renewalDate <= monthEnd) {
-          return total + monthlyCost;
-        }
-        return total + monthlyCost; // Assume active for all months
+        return total + monthlyCost;
       }, 0);
 
       return {
@@ -96,7 +85,6 @@ const SpendingInsights = () => {
     });
   };
 
-  // Calculate category breakdown
   const getCategoryData = () => {
     const categoryTotals: { [key: string]: number } = {};
 
@@ -111,13 +99,12 @@ const SpendingInsights = () => {
     }));
   };
 
-  // Calculate month-over-month comparison
   const getComparisonData = () => {
     const currentMonth = new Date();
     const lastMonth = subMonths(currentMonth, 1);
     const twoMonthsAgo = subMonths(currentMonth, 2);
 
-    const calculateMonthTotal = (month: Date) => {
+    const calculateMonthTotal = () => {
       return subscriptions.reduce((total, sub) => {
         const monthlyCost = sub.billing_cycle === "yearly" ? sub.cost / 12 : sub.cost;
         return total + monthlyCost;
@@ -125,9 +112,9 @@ const SpendingInsights = () => {
     };
 
     return [
-      { month: format(twoMonthsAgo, "MMM"), spending: parseFloat(calculateMonthTotal(twoMonthsAgo).toFixed(2)) },
-      { month: format(lastMonth, "MMM"), spending: parseFloat(calculateMonthTotal(lastMonth).toFixed(2)) },
-      { month: format(currentMonth, "MMM"), spending: parseFloat(calculateMonthTotal(currentMonth).toFixed(2)) },
+      { month: format(twoMonthsAgo, "MMM"), spending: parseFloat(calculateMonthTotal().toFixed(2)) },
+      { month: format(lastMonth, "MMM"), spending: parseFloat(calculateMonthTotal().toFixed(2)) },
+      { month: format(currentMonth, "MMM"), spending: parseFloat(calculateMonthTotal().toFixed(2)) },
     ];
   };
 
@@ -164,7 +151,6 @@ const SpendingInsights = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4 md:p-8">
-      {/* Header */}
       <div className="max-w-6xl mx-auto mb-8 animate-fade-in">
         <Button
           variant="ghost"
@@ -182,7 +168,6 @@ const SpendingInsights = () => {
         <p className="text-muted-foreground">Track your subscription spending patterns and trends</p>
       </div>
 
-      {/* View Selector */}
       <div className="max-w-6xl mx-auto mb-6 flex gap-2 justify-center md:justify-start">
         <Button
           variant={currentView === "trends" ? "default" : "outline"}
@@ -210,7 +195,6 @@ const SpendingInsights = () => {
         </Button>
       </div>
 
-      {/* Chart Container with Swipe Support */}
       <div
         ref={containerRef}
         onTouchStart={handleTouchStart}
@@ -254,7 +238,7 @@ const SpendingInsights = () => {
                           border: "1px solid hsl(var(--border))",
                           borderRadius: "8px",
                         }}
-                        formatter={(value: number) => [`$${value.toFixed(2)}`, "Spending"]}
+                        formatter={(value: number) => [formatCurrency(value), "Spending"]}
                       />
                       <Area
                         type="monotone"
@@ -300,7 +284,7 @@ const SpendingInsights = () => {
                           border: "1px solid hsl(var(--border))",
                           borderRadius: "8px",
                         }}
-                        formatter={(value: number) => [`$${value.toFixed(2)}`, "Spending"]}
+                        formatter={(value: number) => [formatCurrency(value), "Spending"]}
                       />
                       <Bar dataKey="spending" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
                     </BarChart>
@@ -311,7 +295,6 @@ const SpendingInsights = () => {
           </CardContent>
         </Card>
 
-        {/* Insights Summary */}
         {subscriptions.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             <Card className="shadow-soft hover:shadow-medium transition-all hover:scale-105">
@@ -320,7 +303,7 @@ const SpendingInsights = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                  ${(trendsData.reduce((sum, d) => sum + d.spending, 0) / trendsData.length).toFixed(2)}
+                  {formatCurrency(trendsData.reduce((sum, d) => sum + d.spending, 0) / trendsData.length)}
                 </p>
               </CardContent>
             </Card>

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Subscription } from "@/pages/Dashboard";
 import { AlertTriangle, TrendingDown, Sparkles, Target } from "lucide-react";
 import { useState } from "react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface BudgetAnalyzerProps {
   subscriptions: Subscription[];
@@ -21,6 +22,7 @@ interface Recommendation {
 
 const BudgetAnalyzer = ({ subscriptions, monthlyBudget, onCancelRecommendation }: BudgetAnalyzerProps) => {
   const [showRecommendations, setShowRecommendations] = useState(false);
+  const { formatCurrency } = useCurrency();
 
   const calculateMonthlyTotal = () => {
     return subscriptions.reduce((total, sub) => {
@@ -42,17 +44,14 @@ const BudgetAnalyzer = ({ subscriptions, monthlyBudget, onCancelRecommendation }
       let priority: "high" | "medium" | "low" = "low";
       let reason = "";
 
-      // High priority: Never used or rarely used expensive subs
       if (sub.usage_frequency === "never" || sub.usage_frequency === "rarely") {
         priority = "high";
         reason = `${sub.usage_frequency === "never" ? "Never used" : "Rarely used"} - easy savings!`;
       }
-      // Medium priority: Higher cost subs with infrequent use
       else if (monthlyCost > 15 && (sub.usage_frequency === "monthly" || !sub.usage_frequency)) {
         priority = "medium";
         reason = "Expensive with limited use - consider alternatives";
       }
-      // Low priority: Duplicate categories
       else {
         const sameCategoryCount = subscriptions.filter(s => s.category === sub.category).length;
         if (sameCategoryCount > 2) {
@@ -71,7 +70,6 @@ const BudgetAnalyzer = ({ subscriptions, monthlyBudget, onCancelRecommendation }
       }
     });
 
-    // Sort by priority and savings
     return recommendations.sort((a, b) => {
       const priorityWeight = { high: 3, medium: 2, low: 1 };
       const priorityDiff = priorityWeight[b.priority] - priorityWeight[a.priority];
@@ -119,7 +117,7 @@ const BudgetAnalyzer = ({ subscriptions, monthlyBudget, onCancelRecommendation }
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Monthly Spending</span>
             <span className="font-bold" style={{ color: getBudgetColor() }}>
-              ${monthlyTotal.toFixed(2)} / ${monthlyBudget.toFixed(2)}
+              {formatCurrency(monthlyTotal)} / {formatCurrency(monthlyBudget)}
             </span>
           </div>
           <Progress 
@@ -131,7 +129,7 @@ const BudgetAnalyzer = ({ subscriptions, monthlyBudget, onCancelRecommendation }
           />
           {overBudget && (
             <p className="text-sm text-destructive font-medium animate-fade-in">
-              You're ${amountOver.toFixed(2)} over budget this month
+              You're {formatCurrency(amountOver)} over budget this month
             </p>
           )}
         </div>
@@ -150,7 +148,7 @@ const BudgetAnalyzer = ({ subscriptions, monthlyBudget, onCancelRecommendation }
                 </p>
                 <p className="text-lg font-bold text-success flex items-center gap-1">
                   <TrendingDown className="w-4 h-4" />
-                  Save up to ${potentialSavings.toFixed(2)}/mo
+                  Save up to {formatCurrency(potentialSavings)}/mo
                 </p>
               </div>
               <Button
@@ -184,7 +182,7 @@ const BudgetAnalyzer = ({ subscriptions, monthlyBudget, onCancelRecommendation }
                   </div>
                   <div className="text-right ml-4">
                     <p className="text-lg font-bold text-success">
-                      +${rec.savings.toFixed(2)}/mo
+                      +{formatCurrency(rec.savings)}/mo
                     </p>
                   </div>
                 </div>

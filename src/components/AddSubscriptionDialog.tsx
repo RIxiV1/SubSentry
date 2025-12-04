@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,18 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface AddSubscriptionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  prefillData?: {
+    name: string;
+    cost: number;
+    category: string;
+    billingCycle: "monthly" | "yearly";
+  } | null;
 }
 
 const subscriptionSchema = z.object({
@@ -31,7 +38,7 @@ const categories = [
   "Other",
 ];
 
-const AddSubscriptionDialog = ({ open, onOpenChange, onSuccess }: AddSubscriptionDialogProps) => {
+const AddSubscriptionDialog = ({ open, onOpenChange, onSuccess, prefillData }: AddSubscriptionDialogProps) => {
   const [name, setName] = useState("");
   const [cost, setCost] = useState("");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
@@ -39,6 +46,25 @@ const AddSubscriptionDialog = ({ open, onOpenChange, onSuccess }: AddSubscriptio
   const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { currency } = useCurrency();
+
+  // Handle prefill data from quick add
+  useEffect(() => {
+    if (prefillData && open) {
+      setName(prefillData.name);
+      setCost(prefillData.cost.toString());
+      setBillingCycle(prefillData.billingCycle);
+      setCategory(prefillData.category);
+      // Set renewal date to 1 month or 1 year from now
+      const today = new Date();
+      if (prefillData.billingCycle === "yearly") {
+        today.setFullYear(today.getFullYear() + 1);
+      } else {
+        today.setMonth(today.getMonth() + 1);
+      }
+      setRenewalDate(today.toISOString().split('T')[0]);
+    }
+  }, [prefillData, open]);
 
   const resetForm = () => {
     setName("");
@@ -104,8 +130,15 @@ const AddSubscriptionDialog = ({ open, onOpenChange, onSuccess }: AddSubscriptio
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      resetForm();
+    }
+    onOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-2xl">Add to the Hit List</DialogTitle>
@@ -128,7 +161,7 @@ const AddSubscriptionDialog = ({ open, onOpenChange, onSuccess }: AddSubscriptio
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="cost">Cost</Label>
+              <Label htmlFor="cost">Cost ({currency.symbol})</Label>
               <Input
                 id="cost"
                 type="number"
@@ -187,7 +220,7 @@ const AddSubscriptionDialog = ({ open, onOpenChange, onSuccess }: AddSubscriptio
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
               className="flex-1"
               disabled={loading}
             >
