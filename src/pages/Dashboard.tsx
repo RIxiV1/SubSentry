@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus, LogOut, Filter, TrendingUp } from "lucide-react";
+import { Plus, LogOut, TrendingUp } from "lucide-react";
 import DashboardStats from "@/components/DashboardStats";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import AddSubscriptionDialog from "@/components/AddSubscriptionDialog";
@@ -18,8 +18,11 @@ import SkeletonCard from "@/components/SkeletonCard";
 import SkeletonStats from "@/components/SkeletonStats";
 import CommandPalette from "@/components/CommandPalette";
 import SearchFilter from "@/components/SearchFilter";
+import QuickAddServices from "@/components/QuickAddServices";
+import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import confetti from "canvas-confetti";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export interface Subscription {
   id: string;
@@ -41,9 +44,18 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("name");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [subscriptionToDelete, setSubscriptionToDelete] = useState<Subscription | null>(null);
+  const [prefillData, setPrefillData] = useState<{
+    name: string;
+    cost: number;
+    category: string;
+    billingCycle: "monthly" | "yearly";
+  } | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { formatCurrency } = useCurrency();
 
   const { data: subscriptions = [], isLoading } = useQuery({
     queryKey: ['subscriptions'],
@@ -78,7 +90,6 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
@@ -90,7 +101,6 @@ const Dashboard = () => {
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -112,40 +122,42 @@ const Dashboard = () => {
     navigate("/auth");
   };
 
-  const handleDeleteSubscription = async (id: string) => {
+  const handleDeleteClick = (id: string) => {
+    const sub = subscriptions.find(s => s.id === id);
+    if (sub) {
+      setSubscriptionToDelete(sub);
+      setDeleteDialogOpen(true);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!subscriptionToDelete) return;
+
     try {
-      const deletedSub = subscriptions.find(sub => sub.id === id);
-      
-      if (!deletedSub) return;
+      const monthlySavings = subscriptionToDelete.billing_cycle === "yearly" 
+        ? subscriptionToDelete.cost / 12
+        : subscriptionToDelete.cost;
 
-      const monthlySavings = deletedSub.billing_cycle === "yearly" 
-        ? deletedSub.cost / 12
-        : deletedSub.cost;
-
-      // Save to savings history
       const { error: savingsError } = await supabase
         .from("savings_history")
         .insert({
-          subscription_name: deletedSub.name,
+          subscription_name: subscriptionToDelete.name,
           monthly_savings: monthlySavings,
           user_id: user?.id,
         });
 
       if (savingsError) throw savingsError;
 
-      // Delete subscription
       const { error } = await supabase
         .from("subscriptions")
         .delete()
-        .eq("id", id);
+        .eq("id", subscriptionToDelete.id);
 
       if (error) throw error;
 
-      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
       queryClient.invalidateQueries({ queryKey: ['savings'] });
       
-      // Celebration confetti
       confetti({
         particleCount: 100,
         spread: 70,
@@ -155,7 +167,7 @@ const Dashboard = () => {
 
       toast({
         title: "Period. You just saved money! 💸",
-        description: `That's $${monthlySavings.toFixed(2)}/mo back in your pocket. Slay!`,
+        description: `That's ${formatCurrency(monthlySavings)}/mo back in your pocket. Slay!`,
       });
     } catch (error: any) {
       toast({
@@ -164,6 +176,7 @@ const Dashboard = () => {
         variant: "destructive",
       });
     }
+    setSubscriptionToDelete(null);
   };
 
   const handleEditSubscription = (subscription: Subscription) => {
@@ -171,23 +184,37 @@ const Dashboard = () => {
     setIsEditDialogOpen(true);
   };
 
+  const handleQuickAddService = (service: {
+    name: string;
+    cost: number;
+    category: string;
+    billingCycle: "monthly" | "yearly";
+  }) => {
+    setPrefillData(service);
+    setIsAddDialogOpen(true);
+  };
+
+  const handleAddDialogClose = (open: boolean) => {
+    setIsAddDialogOpen(open);
+    if (!open) {
+      setPrefillData(null);
+    }
+  };
+
   // Filter and sort subscriptions
   const filteredAndSortedSubscriptions = (() => {
     let filtered = subscriptions || [];
 
-    // Apply search filter
     if (searchQuery) {
       filtered = filtered.filter(sub =>
         sub.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    // Apply category filter
     if (selectedCategory !== "all") {
       filtered = filtered.filter(sub => sub.category === selectedCategory);
     }
 
-    // Apply sorting
     const sorted = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case "name":
@@ -214,7 +241,6 @@ const Dashboard = () => {
     return (
       <div className="min-h-screen bg-gradient-subtle">
         <div className="container max-w-6xl mx-auto px-4 py-8">
-          {/* Header Skeleton */}
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-4xl font-bold mb-2">SubSentry 💸</h1>
@@ -229,10 +255,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Stats Skeleton */}
           <SkeletonStats />
 
-          {/* Subscriptions Skeleton */}
           <div className="mt-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Your Subscriptions</h2>
@@ -288,6 +312,14 @@ const Dashboard = () => {
           <DashboardStats subscriptions={subscriptions} />
         </div>
 
+        {/* Quick Add Services */}
+        <div className="mt-8 animate-fade-in" style={{ animationDelay: '150ms' }}>
+          <QuickAddServices 
+            onSelectService={handleQuickAddService}
+            existingSubscriptions={subscriptions.map(s => s.name)}
+          />
+        </div>
+
         {/* Budget Settings */}
         <div className="mt-8">
           <BudgetSettings />
@@ -299,7 +331,7 @@ const Dashboard = () => {
             <BudgetAnalyzer 
               subscriptions={subscriptions}
               monthlyBudget={parseFloat(userSettings.monthly_budget.toString())}
-              onCancelRecommendation={handleDeleteSubscription}
+              onCancelRecommendation={handleDeleteClick}
             />
           </div>
         )}
@@ -388,7 +420,7 @@ const Dashboard = () => {
                 <SubscriptionCard
                   key={subscription.id}
                   subscription={subscription}
-                  onDelete={handleDeleteSubscription}
+                  onDelete={handleDeleteClick}
                   onEdit={handleEditSubscription}
                 />
               ))}
@@ -398,8 +430,9 @@ const Dashboard = () => {
 
         <AddSubscriptionDialog
           open={isAddDialogOpen}
-          onOpenChange={setIsAddDialogOpen}
+          onOpenChange={handleAddDialogClose}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['subscriptions'] })}
+          prefillData={prefillData}
         />
 
         <EditSubscriptionDialog
@@ -407,6 +440,15 @@ const Dashboard = () => {
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['subscriptions'] })}
+        />
+
+        <DeleteConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          onConfirm={handleConfirmDelete}
+          title="Delete Subscription?"
+          description="This will cancel your subscription tracking and add it to your savings history."
+          itemName={subscriptionToDelete?.name}
         />
 
         {/* Floating Action Button for mobile */}

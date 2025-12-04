@@ -1,12 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Subscription } from "@/pages/Dashboard";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface SpendingInsightsProps {
   subscriptions: Subscription[];
 }
 
 const SpendingInsights = ({ subscriptions }: SpendingInsightsProps) => {
+  const { formatCurrency } = useCurrency();
+
   const getCategoryData = () => {
     const categoryTotals: { [key: string]: number } = {};
 
@@ -57,7 +60,7 @@ const SpendingInsights = ({ subscriptions }: SpendingInsightsProps) => {
                 <Cell key={`cell-${index}`} fill={COLORS[entry.name as keyof typeof COLORS] || COLORS.Other} />
               ))}
             </Pie>
-            <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+            <Tooltip formatter={(value: number) => formatCurrency(value)} />
             <Legend />
           </PieChart>
         </ResponsiveContainer>
